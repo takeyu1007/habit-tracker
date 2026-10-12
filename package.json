@@ -1,0 +1,10 @@
+{
+  "name": "habit-tracker",
+  "private": true,
+  "type": "module",
+  "description": "個人用の習慣断ち切りトラッカー（PWA）。依存パッケージなし・ビルド不要。",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.js\"",
+    "serve": "python3 -m http.server 8080"
+  }
+}

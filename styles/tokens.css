@@ -1,0 +1,70 @@
+/* デザイントークン。色・余白・角丸などはここで定義し、app.css では変数経由で使う。 */
+
+@font-face {
+  font-family: 'Outfit';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('../fonts/outfit-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304,
+    U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  /* 背景・面 */
+  --color-bg: #0b1129;
+  --color-bg-deep: #070b1c;
+  --color-surface: hsl(228 40% 100% / 0.055);
+  --color-surface-strong: hsl(228 40% 100% / 0.09);
+  --color-surface-solid: #141b38;
+  --color-border: hsl(228 60% 90% / 0.1);
+  --color-border-strong: hsl(228 60% 90% / 0.18);
+
+  /* 文字 */
+  --color-text: #e9ecf8;
+  --color-text-muted: #9aa3c4;
+  --color-text-faint: #6b7499;
+
+  /* アクセント（アイコンのリングと同系色） */
+  --color-violet: #8b5cf6;
+  --color-violet-soft: #a78bfa;
+  --color-teal: #2dd4bf;
+  --color-rose: #fb7185;
+  --color-rose-deep: #e11d48;
+  --gradient-accent: linear-gradient(135deg, var(--color-violet) 0%, #6d8cf5 50%, var(--color-teal) 100%);
+  --gradient-text: linear-gradient(120deg, #c4b5fd 0%, #93c5fd 45%, #5eead4 100%);
+  --gradient-danger: linear-gradient(135deg, #f43f5e 0%, #fb7185 100%);
+
+  /* フォント（数字・英字は Outfit、日本語は各 OS の標準ゴシック） */
+  --font-sans: 'Outfit', 'Hiragino Sans', 'Hiragino Kaku Gothic ProN', 'Noto Sans JP',
+    'Noto Sans CJK JP', 'Yu Gothic UI', system-ui, sans-serif;
+
+  /* 余白・角丸・影 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-pill: 999px;
+  --shadow-card: 0 10px 40px -12px hsl(240 60% 3% / 0.7), inset 0 1px 0 hsl(0 0% 100% / 0.06);
+  --shadow-glow: 0 8px 32px -6px hsl(258 90% 66% / 0.55);
+
+  /* 動き */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 150ms;
+  --duration-base: 260ms;
+
+  /* セーフエリア（ノッチ・ホームバー） */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  --content-max: 1180px;
+}
