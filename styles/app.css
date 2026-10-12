@@ -879,22 +879,44 @@ button {
   color: var(--color-rose);
 }
 
-/* マイルストーンプログレスバー */
-.milestone-bar {
+/* 個別目標ボックス */
+.target-box {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  background: hsl(230 40% 10% / 0.45);
+  border: 1px solid var(--color-border);
+  transition: all 300ms var(--ease-out);
 }
 
-.milestone-bar__header {
+.target-box--achieved {
+  background: hsl(150 50% 12% / 0.35);
+  border-color: hsl(150 60% 45% / 0.45);
+  box-shadow: 0 0 16px -4px hsl(150 60% 45% / 0.25);
+}
+
+.target-box__header {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
+  font-size: 0.82rem;
 }
 
-.milestone-bar__track {
+.target-box__title {
+  color: var(--color-text-main);
+  font-weight: 500;
+}
+
+.target-box__percent {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.target-box__track {
   width: 100%;
   height: 6px;
   border-radius: var(--radius-pill);
@@ -902,11 +924,52 @@ button {
   overflow: hidden;
 }
 
-.milestone-bar__fill {
+.target-box__fill {
   height: 100%;
   border-radius: var(--radius-pill);
   background: var(--gradient-accent);
   transition: width 400ms var(--ease-out);
+}
+
+.target-box__fill--achieved {
+  background: linear-gradient(90deg, #10b981, #34d399, #f59e0b);
+}
+
+.target-box__footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.target-box__action-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.75rem;
+  color: var(--color-brand-cyan);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.target-box__btn-celebrate {
+  animation: pulse-glow 2s infinite ease-in-out;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 10px 0 hsl(150 80% 45% / 0.3); }
+  50% { box-shadow: 0 0 16px 4px hsl(150 80% 45% / 0.6); }
+}
+
+.congrats-text {
+  display: inline-block;
+  line-height: 1.5;
+  color: var(--color-text-main);
 }
 
 .btn--sos {
@@ -986,7 +1049,8 @@ button {
   padding: 0;
 }
 
-.chip[aria-checked='true'] {
+.chip[aria-checked='true'],
+.chip--active {
   background: hsl(258 90% 66% / 0.25);
   border-color: var(--color-violet);
   color: #fff;

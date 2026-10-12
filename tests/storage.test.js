@@ -86,7 +86,7 @@ test('addHabit: SPEC の全フィールドを既定値付きで保存', () => {
   assert.equal(h.createdAt, T0.toISOString());
   assert.deepEqual(Object.keys(h).sort(), [
     'costPerPeriod', 'costPeriodUnit', 'createdAt', 'icon', 'id', 'milestones',
-    'reasons', 'startedAt', 'tags', 'timeSpentMinutesPerDay', 'title',
+    'reasons', 'startedAt', 'tags', 'targetDays', 'timeSpentMinutesPerDay', 'title',
   ]);
 });
 

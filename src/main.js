@@ -5,11 +5,12 @@
 
 import { createStore } from './store.js';
 import { STORAGE_KEY } from './storage.js';
-import { DEFAULT_TAGS, DEFAULT_MILESTONES } from './model.js';
+import { DEFAULT_TAGS } from './model.js';
 import { createDashboard } from './ui/dashboard.js';
 import { createHabitForm } from './ui/habitForm.js';
 import { createResetModal } from './ui/resetModal.js';
 import { createCravingModal } from './ui/cravingModal.js';
+import { createGoalModal } from './ui/goalModal.js';
 import { createHistoryView } from './ui/history.js';
 import { createSettingsView } from './ui/settings.js';
 import { setupTabs, updateTabBadges } from './ui/tabs.js';
@@ -29,9 +30,18 @@ function syncViews(state = store.getState()) {
 
 const settingsView = createSettingsView(store, () => syncViews());
 
+const goalModal = createGoalModal({
+  onSave(habitId, newTargetDays) {
+    const habit = store.getHabit(habitId);
+    if (!habit) return;
+    store.updateHabit(habitId, { targetDays: newTargetDays });
+    showToast(`「${habit.title}」の目標を ${newTargetDays}日に設定しました！🎯`);
+  },
+});
+
 const habitForm = createHabitForm(
   {
-    onSubmit({ id, title, icon, startedAt, costPerPeriod, costPeriodUnit, timeSpentMinutesPerDay, reasons, tags, milestones }) {
+    onSubmit({ id, title, icon, startedAt, costPerPeriod, costPeriodUnit, timeSpentMinutesPerDay, reasons, tags, targetDays }) {
       if (id) {
         store.updateHabit(id, {
           title,
@@ -42,7 +52,7 @@ const habitForm = createHabitForm(
           timeSpentMinutesPerDay,
           reasons,
           tags,
-          milestones,
+          targetDays,
         });
         showToast('保存しました');
       } else {
@@ -55,7 +65,7 @@ const habitForm = createHabitForm(
           timeSpentMinutesPerDay,
           reasons,
           tags,
-          milestones,
+          targetDays,
         });
         showToast(`「${title}」の記録を始めました`);
       }
@@ -74,8 +84,7 @@ const habitForm = createHabitForm(
     const state = store.getState();
     const custom = state.customTags || [];
     const allTags = [...new Set([...DEFAULT_TAGS, ...custom])];
-    const defaultMilestones = state.defaultMilestones || [...DEFAULT_MILESTONES];
-    return { allTags, defaultMilestones };
+    return { allTags };
   },
 );
 
@@ -97,6 +106,10 @@ const dashboard = createDashboard({
   onCraving(id) {
     const habit = store.getHabit(id);
     if (habit) cravingModal.open(habit);
+  },
+  onSetGoal(id) {
+    const habit = store.getHabit(id);
+    if (habit) goalModal.open(habit);
   },
 });
 

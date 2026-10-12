@@ -70,6 +70,9 @@ function normalizeHabit(h) {
     tags: Array.isArray(h.tags)
       ? h.tags.filter(/** @param {unknown} t */ (t) => typeof t === 'string')
       : [],
+    targetDays: Number(h.targetDays) > 0
+      ? Number(h.targetDays)
+      : (Array.isArray(h.milestones) && Number(h.milestones[0]) > 0 ? Number(h.milestones[0]) : 7),
     milestones: Array.isArray(h.milestones)
       ? h.milestones
           .map(Number)

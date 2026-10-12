@@ -5,7 +5,7 @@
  * - tick():   毎秒、タイマーの数字テキストだけを書き換える（全体再描画しない）
  */
 
-import { elapsedSeconds, splitDuration, savedMoney, savedMinutes, annualProjectedLoss, getMilestoneProgress } from '../calc.js';
+import { elapsedSeconds, splitDuration, savedMoney, savedMinutes, annualProjectedLoss, getTargetProgress } from '../calc.js';
 import { escapeHtml, formatDateTime, pad2 } from '../format.js';
 
 /** @typedef {import('../model.js').Habit} Habit */
@@ -38,14 +38,18 @@ function cardHtml(habit, index) {
       </div>`
     : '';
 
-  const milestoneHtml = `
-    <div class="milestone-bar">
-      <div class="milestone-bar__header">
-        <span data-t="milestone-label">次の目標: 計算中...</span>
-        <span data-t="milestone-percent">0%</span>
+  const targetHtml = `
+    <div class="target-box" data-t="target-box">
+      <div class="target-box__header">
+        <span class="target-box__title" data-t="target-label">🎯 目標: 計算中...</span>
+        <span class="target-box__percent" data-t="target-percent">0%</span>
       </div>
-      <div class="milestone-bar__track">
-        <div class="milestone-bar__fill" data-t="milestone-fill" style="width: 0%;"></div>
+      <div class="target-box__track">
+        <div class="target-box__fill" data-t="target-fill" style="width: 0%;"></div>
+      </div>
+      <div class="target-box__footer">
+        <span class="target-box__sub" data-t="target-sub">あと - 日</span>
+        <button type="button" class="target-box__action-btn" data-action="set-goal" data-t="target-action">目標を変更</button>
       </div>
     </div>`;
 
@@ -72,7 +76,7 @@ function cardHtml(habit, index) {
       </div>
     </div>
 
-    ${milestoneHtml}
+    ${targetHtml}
     ${metricsHtml}
 
     <div class="habit-card__foot">
@@ -90,6 +94,7 @@ function cardHtml(habit, index) {
  * @property {(id: string) => void} onEdit
  * @property {(id: string) => void} onReset
  * @property {(id: string) => void} onCraving
+ * @property {(id: string) => void} onSetGoal
  */
 
 /**
@@ -108,6 +113,7 @@ export function createDashboard(handlers) {
     if (action === 'edit') handlers.onEdit(card.dataset.id);
     if (action === 'reset') handlers.onReset(card.dataset.id);
     if (action === 'craving') handlers.onCraving(card.dataset.id);
+    if (action === 'set-goal') handlers.onSetGoal(card.dataset.id);
   });
 
   /** @param {number} nowMs */
@@ -131,17 +137,44 @@ export function createDashboard(handlers) {
         setText(card, 'saved-time', `${hrs}時間`);
       }
 
-      // マイルストーン進捗
-      const p = getMilestoneProgress(elapsed, habit.milestones);
-      if (p.isMax) {
-        setText(card, 'milestone-label', `🏆 全目標達成 (${p.prevGoal}日突破)`);
-        setText(card, 'milestone-percent', '100%');
+      // 個別目標の進捗と達成判定
+      const targetDays = habit.targetDays || 7;
+      const tp = getTargetProgress(elapsed, targetDays);
+      const targetBox = card.querySelector('[data-t="target-box"]');
+      const actionBtn = card.querySelector('[data-t="target-action"]');
+      const fillEl = card.querySelector('[data-t="target-fill"]');
+
+      if (tp.isAchieved) {
+        setText(card, 'target-label', `🎉 目標（${tp.targetDays}日）達成！`);
+        setText(card, 'target-percent', '100%');
+        setText(card, 'target-sub', '達成おめでとう！');
+        if (actionBtn instanceof HTMLElement) {
+          actionBtn.textContent = '🎯 次の目標を設定';
+          actionBtn.className = 'btn btn--primary btn--sm target-box__btn-celebrate';
+        }
+        if (targetBox instanceof HTMLElement) {
+          targetBox.classList.add('target-box--achieved');
+        }
+        if (fillEl instanceof HTMLElement) {
+          fillEl.style.width = '100%';
+          fillEl.classList.add('target-box__fill--achieved');
+        }
       } else {
-        setText(card, 'milestone-label', `目標: ${p.nextGoal}日 (${p.prevGoal}日〜)`);
-        setText(card, 'milestone-percent', `${p.percent}%`);
+        setText(card, 'target-label', `🎯 目標: ${tp.targetDays}日`);
+        setText(card, 'target-percent', `${tp.percent}%`);
+        setText(card, 'target-sub', `あと ${tp.remainingDays}日`);
+        if (actionBtn instanceof HTMLElement) {
+          actionBtn.textContent = '目標を変更';
+          actionBtn.className = 'target-box__action-btn';
+        }
+        if (targetBox instanceof HTMLElement) {
+          targetBox.classList.remove('target-box--achieved');
+        }
+        if (fillEl instanceof HTMLElement) {
+          fillEl.style.width = `${tp.percent}%`;
+          fillEl.classList.remove('target-box__fill--achieved');
+        }
       }
-      const fillEl = card.querySelector('[data-t="milestone-fill"]');
-      if (fillEl instanceof HTMLElement) fillEl.style.width = `${p.percent}%`;
     });
   }
 

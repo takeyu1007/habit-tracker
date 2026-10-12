@@ -21,8 +21,6 @@ export function createSettingsView(store, onDataChanged) {
   const newTagInput = /** @type {HTMLInputElement} */ ($('new-custom-tag-input'));
   const addTagBtn = $('btn-add-custom-tag');
   const tagsList = $('settings-tags-list');
-  const milestonesInput = /** @type {HTMLInputElement} */ ($('settings-milestones-input'));
-  const saveMilestonesBtn = $('btn-save-milestones');
   const resetAllBtn = $('btn-reset-all');
 
   function renderTags() {
@@ -63,26 +61,6 @@ export function createSettingsView(store, onDataChanged) {
       e.preventDefault();
       handleAddTag();
     }
-  });
-
-  function renderMilestones() {
-    const defaultMilestones = store.getState().defaultMilestones || [1, 3, 7, 14, 30, 90, 180, 365];
-    milestonesInput.value = defaultMilestones.join(', ');
-  }
-
-  saveMilestonesBtn.addEventListener('click', () => {
-    const parsed = milestonesInput.value
-      .split(/[,、\s]+/)
-      .map(Number)
-      .filter((n) => Number.isFinite(n) && n > 0)
-      .sort((a, b) => a - b);
-    if (parsed.length === 0) {
-      showToast('1つ以上の正の整数を指定してください', { type: 'error' });
-      return;
-    }
-    store.setDefaultMilestones(parsed);
-    renderMilestones();
-    showToast('デフォルト目標日数を保存しました');
   });
 
   // JSON エクスポート
@@ -149,7 +127,6 @@ export function createSettingsView(store, onDataChanged) {
 
   function render() {
     renderTags();
-    renderMilestones();
   }
 
   return { render };

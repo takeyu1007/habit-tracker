@@ -126,3 +126,25 @@ export function getMilestoneProgress(elapsedSec, milestones) {
     isMax: false,
   };
 }
+
+/**
+ * 個別の目標日数に対する進捗率（%）と達成判定。
+ * @param {number} elapsedSec
+ * @param {number} targetDays
+ * @returns {{ currentDays: number, targetDays: number, percent: number, isAchieved: boolean, remainingDays: number }}
+ */
+export function getTargetProgress(elapsedSec, targetDays) {
+  const currentDays = Math.max(0, elapsedSec) / SECONDS_PER_DAY;
+  const target = Math.max(1, Number(targetDays) || 7);
+  const isAchieved = currentDays >= target;
+  const percent = Math.min(100, Math.round((currentDays / target) * 100));
+  const remainingDays = Math.max(0, Math.ceil(target - currentDays));
+  return {
+    currentDays,
+    targetDays: target,
+    percent,
+    isAchieved,
+    remainingDays,
+  };
+}
+

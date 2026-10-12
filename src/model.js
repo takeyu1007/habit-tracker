@@ -18,7 +18,8 @@
  * @property {number} timeSpentMinutesPerDay   1日あたり消費していた時間（分）
  * @property {string[]} reasons                やめたい理由リスト
  * @property {string[]} tags                   分類カテゴリ・タグ（例: "健康", "節約"）
- * @property {number[]} milestones             目標日数リスト（昇順）
+ * @property {number} targetDays               現在の目標日数（例: 7）
+ * @property {number[]} [milestones]           旧マイルストーン互換用（任意）
  * @property {string} createdAt
  */
 
@@ -97,6 +98,7 @@ export function createHabit(input, now = new Date()) {
     timeSpentMinutesPerDay: input.timeSpentMinutesPerDay ?? 0,
     reasons: input.reasons ? [...input.reasons] : [],
     tags: input.tags ? [...input.tags] : [],
+    targetDays: Number(input.targetDays) > 0 ? Number(input.targetDays) : 7,
     milestones: input.milestones ? [...input.milestones] : [...DEFAULT_MILESTONES],
     createdAt: nowIso,
   };

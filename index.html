@@ -135,16 +135,6 @@
           <div class="chip-row chip-row--wrap" id="settings-tags-list" style="margin-top: 12px;"></div>
         </div>
 
-        <!-- デフォルトマイルストーン設定 -->
-        <div class="settings-card glass">
-          <h2 class="settings-card__title">🎯 目標（マイルストーン）初期値</h2>
-          <p class="settings-card__desc">新しく習慣を追加する際のデフォルト目標日数（カンマ区切り）。</p>
-          <div class="tag-management-input">
-            <input class="input" type="text" id="settings-milestones-input" placeholder="例: 1, 3, 7, 14, 30, 90, 180, 365">
-            <button type="button" class="btn btn--primary btn--sm" id="btn-save-milestones">保存</button>
-          </div>
-        </div>
-
         <!-- 使い方ガイド -->
         <div class="settings-card glass">
           <h2 class="settings-card__title">📱 ホーム画面追加ガイド</h2>
@@ -233,11 +223,22 @@
             <span class="field__label">1日あたり使っていた時間（分）</span>
             <input class="input" type="number" id="habit-time-spent" min="0" step="5" placeholder="例: 120">
           </label>
-          <label class="field">
-            <span class="field__label">🎯 目標マイルストーン（日数・カンマ区切り）</span>
-            <input class="input" type="text" id="habit-milestones-input" placeholder="例: 1, 3, 7, 14, 30, 90, 180, 365">
-            <span class="field__hint">進捗バーの区切り目標になります</span>
-          </label>
+          <div class="field">
+            <span class="field__label">🎯 目標日数（まずは何日を目指す？）</span>
+            <div class="chip-row chip-row--wrap" id="habit-target-chips">
+              <button type="button" class="chip" data-target-days="3">3日</button>
+              <button type="button" class="chip chip--active" data-target-days="7">7日 (1週間)</button>
+              <button type="button" class="chip" data-target-days="14">14日 (2週間)</button>
+              <button type="button" class="chip" data-target-days="30">30日 (1ヶ月)</button>
+              <button type="button" class="chip" data-target-days="90">90日 (3ヶ月)</button>
+            </div>
+            <div style="margin-top: 8px; display: flex; align-items: center; gap: 8px;">
+              <span class="field__hint" style="margin: 0;">または直接指定:</span>
+              <input class="input input--sm" type="number" id="habit-target-input" min="1" max="9999" value="7" style="max-width: 90px; text-align: right;">
+              <span class="field__hint" style="margin: 0;">日</span>
+            </div>
+            <span class="field__hint">目標を達成したら、その時点で次の目標を再設定できます</span>
+          </div>
           <label class="field">
             <span class="field__label">やめたい理由（箇条書き・改行区切り）</span>
             <textarea class="input input--textarea" id="habit-reasons" rows="3" placeholder="例: 体重を減らして健康診断をクリアする&#10;無駄な出費を減らして旅行に行く"></textarea>
@@ -317,6 +318,33 @@
 
       <div class="sheet__actions">
         <button type="button" class="btn btn--primary" id="craving-close" style="width: 100%;">落ち着いた・戻る</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 目標の設定・再設定モーダル -->
+  <dialog class="sheet" id="goal-dialog" aria-labelledby="goal-dialog-title">
+    <div class="sheet__body">
+      <div class="sheet__handle" aria-hidden="true"></div>
+      <h2 class="sheet__title" id="goal-dialog-title">🎯 目標の設定</h2>
+      <p class="goal-dialog__status" id="goal-dialog-status">現在の記録: 計算中...</p>
+
+      <div class="field" style="margin-top: 16px;">
+        <span class="field__label">目標日数（タップで選択）</span>
+        <div class="chip-row chip-row--wrap" id="goal-preset-chips"></div>
+      </div>
+
+      <div class="field" style="margin-top: 12px;">
+        <span class="field__label">直接指定</span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <input class="input" type="number" id="goal-custom-input" min="1" max="9999" style="max-width: 120px; text-align: right; font-size: 1.1rem; font-weight: 700;">
+          <span style="font-size: 1rem; font-weight: 600; color: var(--text-secondary);">日</span>
+        </div>
+      </div>
+
+      <div class="sheet__actions" style="margin-top: 24px;">
+        <button type="button" class="btn btn--primary" id="btn-save-goal" style="flex: 2;">この目標で進める</button>
+        <button type="button" class="btn btn--ghost" id="btn-cancel-goal" style="flex: 1;">閉じる</button>
       </div>
     </div>
   </dialog>

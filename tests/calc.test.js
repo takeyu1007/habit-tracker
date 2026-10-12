@@ -1,6 +1,15 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { elapsedSeconds, splitDuration, dailyCost, savedMoney, savedMinutes, annualProjectedLoss, getMilestoneProgress } from '../src/calc.js';
+import {
+  elapsedSeconds,
+  splitDuration,
+  dailyCost,
+  savedMoney,
+  savedMinutes,
+  annualProjectedLoss,
+  getMilestoneProgress,
+  getTargetProgress,
+} from '../src/calc.js';
 
 const START = '2026-10-01T00:00:00.000Z';
 const startMs = Date.parse(START);
@@ -74,3 +83,31 @@ test('getMilestoneProgress: マイルストーン進捗計算', () => {
   assert.equal(p40.percent, 100);
   assert.equal(p40.isMax, true);
 });
+
+test('getTargetProgress: 個別目標進捗と達成判定', () => {
+  // 目標7日、0日経過
+  const p0 = getTargetProgress(0, 7);
+  assert.equal(p0.targetDays, 7);
+  assert.equal(p0.percent, 0);
+  assert.equal(p0.isAchieved, false);
+  assert.equal(p0.remainingDays, 7);
+
+  // 目標7日、3.5日経過 -> 50%
+  const p35 = getTargetProgress(3.5 * 86400, 7);
+  assert.equal(p35.percent, 50);
+  assert.equal(p35.isAchieved, false);
+  assert.equal(p35.remainingDays, 4);
+
+  // 目標7日、7日経過 -> 100%, 達成
+  const p7 = getTargetProgress(7 * 86400, 7);
+  assert.equal(p7.percent, 100);
+  assert.equal(p7.isAchieved, true);
+  assert.equal(p7.remainingDays, 0);
+
+  // 目標7日、10日経過 -> 100%上限、達成
+  const p10 = getTargetProgress(10 * 86400, 7);
+  assert.equal(p10.percent, 100);
+  assert.equal(p10.isAchieved, true);
+  assert.equal(p10.remainingDays, 0);
+});
+

@@ -22,6 +22,7 @@ import { load, save, emptyData } from './storage.js';
  * @property {number} [timeSpentMinutesPerDay]
  * @property {string[]} [reasons]
  * @property {string[]} [tags]
+ * @property {number} [targetDays]
  * @property {number[]} [milestones]
  */
 
@@ -105,6 +106,7 @@ export function createStore(storage, options = {}) {
                     : h.timeSpentMinutesPerDay,
                 reasons: patch.reasons !== undefined ? [...patch.reasons] : h.reasons,
                 tags: patch.tags !== undefined ? [...patch.tags] : h.tags,
+                targetDays: patch.targetDays !== undefined && Number(patch.targetDays) > 0 ? Number(patch.targetDays) : h.targetDays,
                 milestones: patch.milestones !== undefined ? [...patch.milestones] : h.milestones,
               }
             : h,

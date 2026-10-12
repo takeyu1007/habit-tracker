@@ -39,7 +39,8 @@ const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
  * @property {number} timeSpentMinutesPerDay
  * @property {string[]} reasons
  * @property {string[]} tags
- * @property {number[]} milestones
+ * @property {number} targetDays
+ * @property {number[]} [milestones]
  */
 
 /**
@@ -51,7 +52,7 @@ const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
 
 /**
  * @param {HabitFormHandlers} handlers
- * @param {() => { allTags: string[], defaultMilestones: number[] }} getContext
+ * @param {() => { allTags: string[] }} getContext
  */
 export function createHabitForm(handlers, getContext) {
   const dialog = /** @type {HTMLDialogElement} */ ($('habit-dialog'));
@@ -70,7 +71,8 @@ export function createHabitForm(handlers, getContext) {
   const costInput = /** @type {HTMLInputElement} */ ($('habit-cost'));
   const costUnitSelect = /** @type {HTMLSelectElement} */ ($('habit-cost-unit'));
   const timeSpentInput = /** @type {HTMLInputElement} */ ($('habit-time-spent'));
-  const milestonesInput = /** @type {HTMLInputElement} */ ($('habit-milestones-input'));
+  const targetChips = $('habit-target-chips');
+  const targetInput = /** @type {HTMLInputElement} */ ($('habit-target-input'));
   const reasonsInput = /** @type {HTMLTextAreaElement} */ ($('habit-reasons'));
   const deleteButton = /** @type {HTMLButtonElement} */ ($('habit-delete'));
 
@@ -169,6 +171,26 @@ export function createHabitForm(handlers, getContext) {
     deleteButton.textContent = '削除';
   }
 
+  /** @param {number} days */
+  function syncTargetChips(days) {
+    targetChips.querySelectorAll('.chip').forEach((c) => {
+      const chipDays = Number(/** @type {HTMLElement} */ (c).dataset.targetDays);
+      c.classList.toggle('chip--active', chipDays === days);
+    });
+  }
+
+  targetChips.addEventListener('click', (e) => {
+    const chip = /** @type {HTMLElement} */ (e.target).closest('[data-target-days]');
+    if (!(chip instanceof HTMLElement) || !chip.dataset.targetDays) return;
+    const days = Number(chip.dataset.targetDays);
+    targetInput.value = String(days);
+    syncTargetChips(days);
+  });
+
+  targetInput.addEventListener('input', () => {
+    syncTargetChips(Number(targetInput.value));
+  });
+
   /**
    * @param {Habit | undefined} habit 指定時は編集モード
    */
@@ -200,9 +222,9 @@ export function createHabitForm(handlers, getContext) {
     costUnitSelect.value = habit?.costPeriodUnit ?? 'day';
     timeSpentInput.value = habit && habit.timeSpentMinutesPerDay > 0 ? String(habit.timeSpentMinutesPerDay) : '';
 
-    const { defaultMilestones } = getContext();
-    const milestones = habit?.milestones && habit.milestones.length > 0 ? habit.milestones : defaultMilestones;
-    milestonesInput.value = milestones.join(', ');
+    const target = habit?.targetDays || (Array.isArray(habit?.milestones) ? habit?.milestones[0] : 7) || 7;
+    targetInput.value = String(target);
+    syncTargetChips(target);
 
     reasonsInput.value = habit?.reasons ? habit.reasons.join('\n') : '';
 
@@ -247,12 +269,7 @@ export function createHabitForm(handlers, getContext) {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const parsedMilestones = milestonesInput.value
-      .split(/[,、\s]+/)
-      .map(Number)
-      .filter((n) => Number.isFinite(n) && n > 0)
-      .sort((a, b) => a - b);
-    const milestones = parsedMilestones.length > 0 ? parsedMilestones : getContext().defaultMilestones;
+    const targetDays = Math.max(1, Math.floor(Number(targetInput.value) || 7));
 
     handlers.onSubmit({
       id: editingId,
@@ -264,7 +281,8 @@ export function createHabitForm(handlers, getContext) {
       timeSpentMinutesPerDay,
       reasons,
       tags: [...selectedTags],
-      milestones,
+      targetDays,
+      milestones: [targetDays],
     });
     close();
   });
