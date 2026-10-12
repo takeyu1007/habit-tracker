@@ -44,6 +44,9 @@
       <button type="button" class="tab-btn" id="tab-history" data-tab="history" aria-selected="false" role="tab">
         履歴 <span class="tab-badge" id="tab-badge-history">0</span>
       </button>
+      <button type="button" class="tab-btn" id="tab-settings" data-tab="settings" aria-selected="false" role="tab">
+        ⚙️ 設定
+      </button>
     </nav>
   </header>
 
@@ -104,6 +107,62 @@
         <p class="empty-state__text">習慣をリセット（再発）した際に、<br>継続できた時間や反省メモがここに記録されます。</p>
       </section>
     </div>
+
+    <!-- 設定タブ -->
+    <div id="view-settings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+      <section class="settings-container">
+        <!-- データ管理 -->
+        <div class="settings-card glass">
+          <h2 class="settings-card__title">💾 データ管理（バックアップ・復元）</h2>
+          <p class="settings-card__desc">データは端末内（ブラウザ）にのみ保存されています。機種変更時や定期的な保存にご利用ください。</p>
+          <div class="settings-card__actions">
+            <button type="button" class="btn btn--primary" id="btn-export-json">📥 JSONエクスポート</button>
+            <label class="btn btn--ghost" style="cursor: pointer;">
+              📤 JSONインポート
+              <input type="file" id="input-import-json" accept=".json,application/json" hidden>
+            </label>
+          </div>
+        </div>
+
+        <!-- カスタムタグ管理 -->
+        <div class="settings-card glass">
+          <h2 class="settings-card__title">🏷️ カスタムタグ管理</h2>
+          <p class="settings-card__desc">習慣の分類に使える独自のタグを追加・整理できます。</p>
+          <div class="tag-management-input">
+            <input class="input" type="text" id="new-custom-tag-input" placeholder="新しいタグ名（例: 筋トレ）" maxlength="15">
+            <button type="button" class="btn btn--primary btn--sm" id="btn-add-custom-tag">追加</button>
+          </div>
+          <div class="chip-row chip-row--wrap" id="settings-tags-list" style="margin-top: 12px;"></div>
+        </div>
+
+        <!-- デフォルトマイルストーン設定 -->
+        <div class="settings-card glass">
+          <h2 class="settings-card__title">🎯 目標（マイルストーン）初期値</h2>
+          <p class="settings-card__desc">新しく習慣を追加する際のデフォルト目標日数（カンマ区切り）。</p>
+          <div class="tag-management-input">
+            <input class="input" type="text" id="settings-milestones-input" placeholder="例: 1, 3, 7, 14, 30, 90, 180, 365">
+            <button type="button" class="btn btn--primary btn--sm" id="btn-save-milestones">保存</button>
+          </div>
+        </div>
+
+        <!-- 使い方ガイド -->
+        <div class="settings-card glass">
+          <h2 class="settings-card__title">📱 ホーム画面追加ガイド</h2>
+          <ul class="settings-guide-list">
+            <li><strong>iPhone (Safari):</strong> 共有ボタン（□↑）→「ホーム画面に追加」</li>
+            <li><strong>Android (Chrome):</strong> 右上メニュー（︙）→「ホーム画面に追加」または「アプリをインストール」</li>
+            <li><strong>Mac (Safari):</strong> メニュー「ファイル」→「Dockに追加」</li>
+          </ul>
+        </div>
+
+        <!-- 危険な操作 -->
+        <div class="settings-card glass settings-card--danger">
+          <h2 class="settings-card__title">⚠️ データの初期化</h2>
+          <p class="settings-card__desc">すべての習慣・履歴を削除して初期状態に戻します。この操作は取り消せません。</p>
+          <button type="button" class="btn btn--danger-ghost" id="btn-reset-all">全データを初期化</button>
+        </div>
+      </section>
+    </div>
   </main>
 
   <button type="button" class="fab" id="fab-add" aria-label="習慣を追加">
@@ -139,17 +198,20 @@
         <span class="field__error" id="habit-started-at-error" hidden>未来の日時は指定できません</span>
       </label>
 
-      <!-- タグ設定 -->
-      <div class="field">
-        <span class="field__label">タグ・カテゴリ（任意）</span>
-        <input class="input" type="text" id="habit-tags-input" placeholder="例: 健康, 節約, メンタル (カンマ区切り)" autocomplete="off">
-        <div class="chip-row" id="preset-tags-list" style="margin-top: 6px;"></div>
-      </div>
+      <!-- タグ選択（チップ選択 ＋ その場追加） -->
+      <fieldset class="field">
+        <legend class="field__label">タグ・カテゴリ（タップで選択）</legend>
+        <div class="chip-row chip-row--wrap" id="habit-tags-chips"></div>
+        <div class="tag-inline-add" style="margin-top: 8px;">
+          <input class="input input--sm" type="text" id="habit-new-tag-input" placeholder="＋ 新しいタグを入力" maxlength="15" style="max-width: 180px;">
+          <button type="button" class="btn btn--ghost btn--sm" id="btn-habit-add-tag">追加</button>
+        </div>
+      </fieldset>
 
-      <!-- コスト・時間・やめる理由（アコーディオン） -->
+      <!-- コスト・時間・目標・やめる理由（アコーディオン） -->
       <details class="accordion glass">
         <summary class="accordion__summary">
-          <span>💰 節約・時間・やめる理由の設定（任意）</span>
+          <span>⚙️ 節約・目標日数・やめる理由の設定（任意）</span>
           <span class="accordion__arrow" aria-hidden="true">▼</span>
         </summary>
         <div class="accordion__content">
@@ -170,6 +232,11 @@
           <label class="field">
             <span class="field__label">1日あたり使っていた時間（分）</span>
             <input class="input" type="number" id="habit-time-spent" min="0" step="5" placeholder="例: 120">
+          </label>
+          <label class="field">
+            <span class="field__label">🎯 目標マイルストーン（日数・カンマ区切り）</span>
+            <input class="input" type="text" id="habit-milestones-input" placeholder="例: 1, 3, 7, 14, 30, 90, 180, 365">
+            <span class="field__hint">進捗バーの区切り目標になります</span>
           </label>
           <label class="field">
             <span class="field__label">やめたい理由（箇条書き・改行区切り）</span>

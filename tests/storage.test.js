@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { load, save, migrate, STORAGE_KEY, BACKUP_KEY_PREFIX, SCHEMA_VERSION } from '../src/storage.js';
+import { load, save, migrate, emptyData, STORAGE_KEY, BACKUP_KEY_PREFIX, SCHEMA_VERSION } from '../src/storage.js';
 import { createStore } from '../src/store.js';
 import { MemoryStorage } from './helpers.js';
 
@@ -8,7 +8,7 @@ import { MemoryStorage } from './helpers.js';
 
 test('load: 未保存なら空データ', () => {
   const { data, recoveredBackupKey } = load(new MemoryStorage());
-  assert.deepEqual(data, { version: SCHEMA_VERSION, habits: [], resetLogs: [], rewards: [] });
+  assert.deepEqual(data, emptyData());
   assert.equal(recoveredBackupKey, null);
 });
 
@@ -160,4 +160,53 @@ test('subscribe / onSaveError', () => {
   assert.equal(notified, 2);
   assert.equal(errors, 2);
   assert.equal(store.getState().habits.length, 3); // 保存失敗でもメモリ上は保持
+});
+
+test('customTags: 追加と削除の重複防止・空白トリム', () => {
+  const store = createStore(new MemoryStorage(), { now: () => T0 });
+  assert.equal(store.addCustomTag('  夜更かし  '), true);
+  assert.equal(store.addCustomTag('夜更かし'), false); // 重複
+  assert.equal(store.addCustomTag(''), false); // 空白
+  assert.deepEqual(store.getState().customTags, ['夜更かし']);
+
+  assert.equal(store.deleteCustomTag('夜更かし'), true);
+  assert.equal(store.deleteCustomTag('存在しない'), false);
+  assert.deepEqual(store.getState().customTags, []);
+});
+
+test('defaultMilestones: 正の整数でソート・重複除外して更新', () => {
+  const store = createStore(new MemoryStorage(), { now: () => T0 });
+  assert.equal(store.setDefaultMilestones([7, 1, 30, 7, -5, 0, 14]), true);
+  assert.deepEqual(store.getState().defaultMilestones, [1, 7, 14, 30]);
+  assert.equal(store.setDefaultMilestones([]), false); // 空配列は拒否
+});
+
+test('importData: 有効な JSON で置換、無効なら拒否', () => {
+  const store = createStore(new MemoryStorage(), { now: () => T0 });
+  store.addHabit({ title: '旧データ', icon: '🗑️', startedAt: T0.toISOString() });
+
+  const invalid = store.importData('{bad json');
+  assert.equal(invalid, false);
+  assert.equal(store.getState().habits.length, 1);
+
+  const validJson = JSON.stringify({
+    version: 2,
+    habits: [{ id: 'new-1', title: '新習慣', icon: '✨', startedAt: T0.toISOString() }],
+    customTags: ['自作タグ'],
+    defaultMilestones: [3, 10],
+  });
+  const valid = store.importData(validJson);
+  assert.equal(valid, true);
+  assert.equal(store.getState().habits[0].title, '新習慣');
+  assert.deepEqual(store.getState().customTags, ['自作タグ']);
+  assert.deepEqual(store.getState().defaultMilestones, [3, 10]);
+});
+
+test('resetAll: 全データを空状態に戻す', () => {
+  const store = createStore(new MemoryStorage(), { now: () => T0 });
+  store.addHabit({ title: '習慣', icon: '🌟', startedAt: T0.toISOString() });
+  store.addCustomTag('タグ');
+  store.resetAll();
+  assert.equal(store.getState().habits.length, 0);
+  assert.equal(store.getState().customTags.length, 0);
 });

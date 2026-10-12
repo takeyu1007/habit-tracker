@@ -20,7 +20,14 @@ export const SCHEMA_VERSION = 2;
 
 /** @returns {import('./model.js').AppData} */
 export function emptyData() {
-  return { version: SCHEMA_VERSION, habits: [], resetLogs: [], rewards: [] };
+  return {
+    version: SCHEMA_VERSION,
+    habits: [],
+    resetLogs: [],
+    rewards: [],
+    customTags: [],
+    defaultMilestones: [...DEFAULT_MILESTONES],
+  };
 }
 
 /**
@@ -139,6 +146,15 @@ export function migrate(raw) {
         (l) => l !== null,
       ),
     rewards: Array.isArray(data.rewards) ? data.rewards : [],
+    customTags: Array.isArray(data.customTags)
+      ? data.customTags.filter(/** @param {unknown} t */ (t) => typeof t === 'string' && t.trim().length > 0)
+      : [],
+    defaultMilestones: Array.isArray(data.defaultMilestones)
+      ? data.defaultMilestones
+          .map(Number)
+          .filter(/** @param {number} n */ (n) => Number.isFinite(n) && n > 0)
+          .sort(/** @param {number} a @param {number} b */ (a, b) => a - b)
+      : [...DEFAULT_MILESTONES],
   };
 }
 

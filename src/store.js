@@ -4,9 +4,9 @@
  * UI は subscribe() で変更通知を受け取って再描画する。
  */
 
-import { createHabit, newId } from './model.js';
+import { createHabit, newId, DEFAULT_MILESTONES } from './model.js';
 import { elapsedSeconds, savedMoney } from './calc.js';
-import { load, save } from './storage.js';
+import { load, save, emptyData } from './storage.js';
 
 /** @typedef {import('./model.js').Habit} Habit */
 /** @typedef {import('./model.js').AppData} AppData */
@@ -22,6 +22,7 @@ import { load, save } from './storage.js';
  * @property {number} [timeSpentMinutesPerDay]
  * @property {string[]} [reasons]
  * @property {string[]} [tags]
+ * @property {number[]} [milestones]
  */
 
 /**
@@ -74,7 +75,10 @@ export function createStore(storage, options = {}) {
      * @returns {Habit}
      */
     addHabit(input) {
-      const habit = createHabit(input, now());
+      const milestones = input.milestones && input.milestones.length > 0
+        ? input.milestones
+        : (state.defaultMilestones || [...DEFAULT_MILESTONES]);
+      const habit = createHabit({ ...input, milestones }, now());
       state = { ...state, habits: [...state.habits, habit] };
       commit();
       return habit;
@@ -101,6 +105,7 @@ export function createStore(storage, options = {}) {
                     : h.timeSpentMinutesPerDay,
                 reasons: patch.reasons !== undefined ? [...patch.reasons] : h.reasons,
                 tags: patch.tags !== undefined ? [...patch.tags] : h.tags,
+                milestones: patch.milestones !== undefined ? [...patch.milestones] : h.milestones,
               }
             : h,
         ),
@@ -165,6 +170,79 @@ export function createStore(storage, options = {}) {
     reloadFromStorage() {
       state = load(storage).data;
       listeners.forEach((fn) => fn(state));
+    },
+
+    /**
+     * カスタムタグの追加
+     * @param {string} tag
+     * @returns {boolean}
+     */
+    addCustomTag(tag) {
+      const clean = tag.trim();
+      if (!clean) return false;
+      const current = state.customTags || [];
+      if (current.includes(clean)) return false;
+      state = { ...state, customTags: [...current, clean] };
+      commit();
+      return true;
+    },
+
+    /**
+     * カスタムタグの削除
+     * @param {string} tag
+     * @returns {boolean}
+     */
+    deleteCustomTag(tag) {
+      const current = state.customTags || [];
+      if (!current.includes(tag)) return false;
+      state = {
+        ...state,
+        customTags: current.filter((t) => t !== tag),
+      };
+      commit();
+      return true;
+    },
+
+    /**
+     * デフォルトマイルストーンの更新
+     * @param {number[]} milestones
+     * @returns {boolean}
+     */
+    setDefaultMilestones(milestones) {
+      const valid = Array.from(new Set(milestones.filter((n) => Number.isFinite(n) && n > 0))).sort((a, b) => a - b);
+      if (valid.length === 0) return false;
+      state = {
+        ...state,
+        defaultMilestones: valid,
+      };
+      commit();
+      return true;
+    },
+
+    /**
+     * JSON インポートによる全データ復元
+     * @param {string} jsonString
+     * @returns {boolean}
+     */
+    importData(jsonString) {
+      try {
+        const raw = JSON.parse(jsonString);
+        const migrated = load({
+          getItem: () => jsonString,
+          setItem: () => {},
+        }).data;
+        state = migrated;
+        commit();
+        return true;
+      } catch {
+        return false;
+      }
+    },
+
+    /** 全データの初期化 */
+    resetAll() {
+      state = emptyData();
+      commit();
     },
   };
 }

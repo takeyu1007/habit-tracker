@@ -5,11 +5,13 @@
 
 import { createStore } from './store.js';
 import { STORAGE_KEY } from './storage.js';
+import { DEFAULT_TAGS, DEFAULT_MILESTONES } from './model.js';
 import { createDashboard } from './ui/dashboard.js';
 import { createHabitForm } from './ui/habitForm.js';
 import { createResetModal } from './ui/resetModal.js';
 import { createCravingModal } from './ui/cravingModal.js';
 import { createHistoryView } from './ui/history.js';
+import { createSettingsView } from './ui/settings.js';
 import { setupTabs, updateTabBadges } from './ui/tabs.js';
 import { setupInstallHint } from './ui/installHint.js';
 import { showToast } from './ui/toast.js';
@@ -19,40 +21,63 @@ const store = createStore(localStorage);
 const cravingModal = createCravingModal();
 const historyView = createHistoryView();
 
-const habitForm = createHabitForm({
-  onSubmit({ id, title, icon, startedAt, costPerPeriod, costPeriodUnit, timeSpentMinutesPerDay, reasons, tags }) {
-    if (id) {
-      store.updateHabit(id, {
-        title,
-        icon,
-        startedAt,
-        costPerPeriod,
-        costPeriodUnit,
-        timeSpentMinutesPerDay,
-        reasons,
-        tags,
-      });
-      showToast('保存しました');
-    } else {
-      store.addHabit({
-        title,
-        icon,
-        startedAt,
-        costPerPeriod,
-        costPeriodUnit,
-        timeSpentMinutesPerDay,
-        reasons,
-        tags,
-      });
-      showToast(`「${title}」の記録を始めました`);
-    }
+function syncViews(state = store.getState()) {
+  dashboard.render(state.habits, Date.now());
+  historyView.update(state.resetLogs, state.habits);
+  updateTabBadges(state.habits.length, state.resetLogs.length);
+}
+
+const settingsView = createSettingsView(store, () => syncViews());
+
+const habitForm = createHabitForm(
+  {
+    onSubmit({ id, title, icon, startedAt, costPerPeriod, costPeriodUnit, timeSpentMinutesPerDay, reasons, tags, milestones }) {
+      if (id) {
+        store.updateHabit(id, {
+          title,
+          icon,
+          startedAt,
+          costPerPeriod,
+          costPeriodUnit,
+          timeSpentMinutesPerDay,
+          reasons,
+          tags,
+          milestones,
+        });
+        showToast('保存しました');
+      } else {
+        store.addHabit({
+          title,
+          icon,
+          startedAt,
+          costPerPeriod,
+          costPeriodUnit,
+          timeSpentMinutesPerDay,
+          reasons,
+          tags,
+          milestones,
+        });
+        showToast(`「${title}」の記録を始めました`);
+      }
+    },
+    onDelete(id) {
+      const title = store.getHabit(id)?.title ?? '';
+      store.deleteHabit(id);
+      showToast(`「${title}」を削除しました`);
+    },
+    onAddCustomTag(tag) {
+      store.addCustomTag(tag);
+      settingsView.render();
+    },
   },
-  onDelete(id) {
-    const title = store.getHabit(id)?.title ?? '';
-    store.deleteHabit(id);
-    showToast(`「${title}」を削除しました`);
+  () => {
+    const state = store.getState();
+    const custom = state.customTags || [];
+    const allTags = [...new Set([...DEFAULT_TAGS, ...custom])];
+    const defaultMilestones = state.defaultMilestones || [...DEFAULT_MILESTONES];
+    return { allTags, defaultMilestones };
   },
-});
+);
 
 const resetModal = createResetModal({
   onConfirm(id, note, triggerTags) {
@@ -82,14 +107,10 @@ document.getElementById('empty-add-button')?.addEventListener('click', openAddFo
 setupTabs((tab) => {
   if (tab === 'history') {
     historyView.render();
+  } else if (tab === 'settings') {
+    settingsView.render();
   }
 });
-
-function syncViews(state = store.getState()) {
-  dashboard.render(state.habits, Date.now());
-  historyView.update(state.resetLogs, state.habits);
-  updateTabBadges(state.habits.length, state.resetLogs.length);
-}
 
 store.subscribe((state) => syncViews(state));
 store.onSaveError(() =>

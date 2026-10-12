@@ -52,7 +52,21 @@
  * @property {Habit[]} habits
  * @property {ResetLog[]} resetLogs
  * @property {Reward[]} rewards
+ * @property {string[]} [customTags]
+ * @property {number[]} [defaultMilestones]
  */
+
+export const DEFAULT_TAGS = Object.freeze([
+  '健康',
+  '節約',
+  'メンタル',
+  '時間',
+  '睡眠',
+  'ダイエット',
+  '集中力',
+  '食生活',
+  'デジタルデトックス',
+]);
 
 export const DEFAULT_MILESTONES = Object.freeze([1, 3, 7, 14, 30, 90, 180, 365]);
 

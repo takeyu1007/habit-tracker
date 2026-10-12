@@ -1193,6 +1193,86 @@ button {
   white-space: pre-wrap;
 }
 
+/* ---------- 設定タブ ---------- */
+.settings-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+.settings-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+}
+
+.settings-card--danger {
+  border-color: hsl(350 89% 70% / 0.35);
+}
+
+.settings-card__title {
+  font-size: 1.05rem;
+  font-weight: 650;
+}
+
+.settings-card__desc {
+  font-size: 0.84rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.settings-card__actions {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-top: var(--space-2);
+}
+
+.tag-management-input,
+.tag-inline-add {
+  display: flex;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.settings-guide-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  line-height: 1.6;
+}
+
+.chip--removable {
+  padding-right: 8px;
+}
+
+.chip-remove-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 4px;
+  border: none;
+  border-radius: 50%;
+  background: hsl(0 0% 100% / 0.15);
+  color: #fff;
+  font-size: 0.7rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.chip-remove-btn:hover {
+  background: var(--color-rose);
+}
+
 /* ---------- トースト ---------- */
 .toast-region {
   position: fixed;

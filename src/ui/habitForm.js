@@ -3,7 +3,7 @@
  * 習慣の追加・編集ダイアログ。
  */
 
-import { fromLocalInputValue, toLocalInputValue } from '../format.js';
+import { fromLocalInputValue, toLocalInputValue, escapeHtml } from '../format.js';
 
 /** @typedef {import('../model.js').Habit} Habit */
 
@@ -39,18 +39,21 @@ const $ = (id) => /** @type {HTMLElement} */ (document.getElementById(id));
  * @property {number} timeSpentMinutesPerDay
  * @property {string[]} reasons
  * @property {string[]} tags
+ * @property {number[]} milestones
  */
 
 /**
  * @typedef {Object} HabitFormHandlers
  * @property {(result: HabitFormResult) => void} onSubmit
  * @property {(id: string) => void} onDelete
+ * @property {(newTag: string) => void} onAddCustomTag
  */
 
-const PRESET_TAGS = ['健康', '節約', 'メンタル', '時間', '睡眠', 'ダイエット', '集中力'];
-
-/** @param {HabitFormHandlers} handlers */
-export function createHabitForm(handlers) {
+/**
+ * @param {HabitFormHandlers} handlers
+ * @param {() => { allTags: string[], defaultMilestones: number[] }} getContext
+ */
+export function createHabitForm(handlers, getContext) {
   const dialog = /** @type {HTMLDialogElement} */ ($('habit-dialog'));
   const form = /** @type {HTMLFormElement} */ ($('habit-form'));
   const heading = $('habit-dialog-title');
@@ -61,26 +64,26 @@ export function createHabitForm(handlers) {
   const titleError = $('habit-title-error');
   const startedInput = /** @type {HTMLInputElement} */ ($('habit-started-at'));
   const startedError = $('habit-started-at-error');
-  const tagsInput = /** @type {HTMLInputElement} */ ($('habit-tags-input'));
-  const presetTagsList = $('preset-tags-list');
+  const tagsChipsList = $('habit-tags-chips');
+  const newTagInput = /** @type {HTMLInputElement} */ ($('habit-new-tag-input'));
+  const addTagBtn = $('btn-habit-add-tag');
   const costInput = /** @type {HTMLInputElement} */ ($('habit-cost'));
   const costUnitSelect = /** @type {HTMLSelectElement} */ ($('habit-cost-unit'));
   const timeSpentInput = /** @type {HTMLInputElement} */ ($('habit-time-spent'));
+  const milestonesInput = /** @type {HTMLInputElement} */ ($('habit-milestones-input'));
   const reasonsInput = /** @type {HTMLTextAreaElement} */ ($('habit-reasons'));
   const deleteButton = /** @type {HTMLButtonElement} */ ($('habit-delete'));
 
   /** @type {string | null} */
   let editingId = null;
   let selectedIcon = ICONS[0];
+  /** @type {Set<string>} */
+  const selectedTags = new Set();
   /** @type {ReturnType<typeof setTimeout> | undefined} */
   let disarmTimer;
 
   templateList.innerHTML = TEMPLATES.map(
     (t, i) => `<button type="button" class="chip" data-template="${i}"><span aria-hidden="true">${t.icon}</span>${t.title}</button>`,
-  ).join('');
-
-  presetTagsList.innerHTML = PRESET_TAGS.map(
-    (tag) => `<button type="button" class="chip" data-tag="${tag}">+ ${tag}</button>`,
   ).join('');
 
   templateList.addEventListener('click', (e) => {
@@ -92,17 +95,41 @@ export function createHabitForm(handlers) {
     clearErrors();
   });
 
-  presetTagsList.addEventListener('click', (e) => {
+  function renderTagChips() {
+    const { allTags } = getContext();
+    // 選択中のタグも漏れなく含める
+    const combined = [...new Set([...allTags, ...selectedTags])].sort();
+    tagsChipsList.innerHTML = combined
+      .map((tag) => {
+        const active = selectedTags.has(tag);
+        return `<button type="button" class="chip" data-tag="${escapeHtml(tag)}" aria-checked="${active}">#${escapeHtml(tag)}</button>`;
+      })
+      .join('');
+  }
+
+  tagsChipsList.addEventListener('click', (e) => {
     const chip = /** @type {HTMLElement} */ (e.target).closest('[data-tag]');
     if (!(chip instanceof HTMLElement) || !chip.dataset.tag) return;
     const tag = chip.dataset.tag;
-    const current = tagsInput.value
-      .split(/[,、]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
-    if (!current.includes(tag)) {
-      current.push(tag);
-      tagsInput.value = current.join(', ');
+    if (selectedTags.has(tag)) selectedTags.delete(tag);
+    else selectedTags.add(tag);
+    renderTagChips();
+  });
+
+  function handleAddNewTag() {
+    const tag = newTagInput.value.trim().replace(/^#/, '');
+    if (!tag) return;
+    selectedTags.add(tag);
+    handlers.onAddCustomTag(tag);
+    newTagInput.value = '';
+    renderTagChips();
+  }
+
+  addTagBtn.addEventListener('click', handleAddNewTag);
+  newTagInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddNewTag();
     }
   });
 
@@ -152,6 +179,12 @@ export function createHabitForm(handlers) {
     clearErrors();
     disarmDelete();
 
+    selectedTags.clear();
+    if (habit?.tags) {
+      habit.tags.forEach((t) => selectedTags.add(t));
+    }
+    renderTagChips();
+
     const icons = habit && !ICONS.includes(habit.icon) ? [habit.icon, ...ICONS] : ICONS;
     renderIcons(icons);
 
@@ -163,10 +196,14 @@ export function createHabitForm(handlers) {
     startedInput.value = toLocalInputValue(habit ? new Date(habit.startedAt) : now);
     setIcon(habit?.icon ?? ICONS[0]);
 
-    tagsInput.value = habit?.tags ? habit.tags.join(', ') : '';
     costInput.value = habit && habit.costPerPeriod > 0 ? String(habit.costPerPeriod) : '';
     costUnitSelect.value = habit?.costPeriodUnit ?? 'day';
     timeSpentInput.value = habit && habit.timeSpentMinutesPerDay > 0 ? String(habit.timeSpentMinutesPerDay) : '';
+
+    const { defaultMilestones } = getContext();
+    const milestones = habit?.milestones && habit.milestones.length > 0 ? habit.milestones : defaultMilestones;
+    milestonesInput.value = milestones.join(', ');
+
     reasonsInput.value = habit?.reasons ? habit.reasons.join('\n') : '';
 
     dialog.showModal();
@@ -202,10 +239,6 @@ export function createHabitForm(handlers) {
 
     // 入力が未来側に少しずれていた場合は現在時刻に丸める
     const startedAt = new Date(Math.min(started.getTime(), Date.now())).toISOString();
-    const tags = tagsInput.value
-      .split(/[,、]/)
-      .map((s) => s.trim())
-      .filter(Boolean);
     const costPerPeriod = Math.max(0, Number(costInput.value) || 0);
     const costPeriodUnit = /** @type {import('../model.js').CostPeriodUnit} */ (costUnitSelect.value || 'day');
     const timeSpentMinutesPerDay = Math.max(0, Number(timeSpentInput.value) || 0);
@@ -213,6 +246,13 @@ export function createHabitForm(handlers) {
       .split('\n')
       .map((s) => s.trim())
       .filter(Boolean);
+
+    const parsedMilestones = milestonesInput.value
+      .split(/[,、\s]+/)
+      .map(Number)
+      .filter((n) => Number.isFinite(n) && n > 0)
+      .sort((a, b) => a - b);
+    const milestones = parsedMilestones.length > 0 ? parsedMilestones : getContext().defaultMilestones;
 
     handlers.onSubmit({
       id: editingId,
@@ -223,7 +263,8 @@ export function createHabitForm(handlers) {
       costPeriodUnit,
       timeSpentMinutesPerDay,
       reasons,
-      tags,
+      tags: [...selectedTags],
+      milestones,
     });
     close();
   });
