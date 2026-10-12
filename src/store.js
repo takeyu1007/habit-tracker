@@ -17,6 +17,11 @@ import { load, save } from './storage.js';
  * @property {string} title
  * @property {string} icon
  * @property {string} startedAt ISO 8601
+ * @property {number} [costPerPeriod]
+ * @property {import('./model.js').CostPeriodUnit} [costPeriodUnit]
+ * @property {number} [timeSpentMinutesPerDay]
+ * @property {string[]} [reasons]
+ * @property {string[]} [tags]
  */
 
 /**
@@ -83,7 +88,21 @@ export function createStore(storage, options = {}) {
       state = {
         ...state,
         habits: state.habits.map((h) =>
-          h.id === id ? { ...h, ...patch, title: (patch.title ?? h.title).trim() } : h,
+          h.id === id
+            ? {
+                ...h,
+                ...patch,
+                title: patch.title !== undefined ? patch.title.trim() : h.title,
+                costPerPeriod: patch.costPerPeriod !== undefined ? patch.costPerPeriod : h.costPerPeriod,
+                costPeriodUnit: patch.costPeriodUnit !== undefined ? patch.costPeriodUnit : h.costPeriodUnit,
+                timeSpentMinutesPerDay:
+                  patch.timeSpentMinutesPerDay !== undefined
+                    ? patch.timeSpentMinutesPerDay
+                    : h.timeSpentMinutesPerDay,
+                reasons: patch.reasons !== undefined ? [...patch.reasons] : h.reasons,
+                tags: patch.tags !== undefined ? [...patch.tags] : h.tags,
+              }
+            : h,
         ),
       };
       commit();
@@ -106,7 +125,7 @@ export function createStore(storage, options = {}) {
     /**
      * リセット（再発）を記録し、再発日時を新しい開始日時にする。
      * @param {string} id
-     * @param {{ resetAt?: Date, note?: string }} [opts]
+     * @param {{ resetAt?: Date, note?: string, triggerTags?: string[] }} [opts]
      * @returns {import('./model.js').ResetLog | undefined}
      */
     resetHabit(id, opts = {}) {
@@ -130,6 +149,7 @@ export function createStore(storage, options = {}) {
         durationSeconds,
         savedAmount: Math.round(savedMoney(durationSeconds, habit.costPerPeriod, habit.costPeriodUnit)),
         reasonNote: (opts.note ?? '').trim(),
+        triggerTags: opts.triggerTags ? [...opts.triggerTags] : [],
       };
 
       state = {

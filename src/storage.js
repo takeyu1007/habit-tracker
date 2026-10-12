@@ -11,7 +11,7 @@ import { DEFAULT_MILESTONES } from './model.js';
 
 export const STORAGE_KEY = 'habitTracker.data';
 export const BACKUP_KEY_PREFIX = 'habitTracker.backup.';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /**
  * テスト時に差し替えられるよう、Storage 互換の最小インターフェースで扱う。
@@ -60,6 +60,9 @@ function normalizeHabit(h) {
     reasons: Array.isArray(h.reasons)
       ? h.reasons.filter(/** @param {unknown} r */ (r) => typeof r === 'string')
       : [],
+    tags: Array.isArray(h.tags)
+      ? h.tags.filter(/** @param {unknown} t */ (t) => typeof t === 'string')
+      : [],
     milestones: Array.isArray(h.milestones)
       ? h.milestones
           .map(Number)
@@ -67,6 +70,28 @@ function normalizeHabit(h) {
           .sort(/** @param {number} a @param {number} b */ (a, b) => a - b)
       : [...DEFAULT_MILESTONES],
     createdAt: typeof h.createdAt === 'string' ? h.createdAt : new Date().toISOString(),
+  };
+}
+
+/**
+ * @param {any} l
+ * @returns {import('./model.js').ResetLog | null}
+ */
+function normalizeResetLog(l) {
+  if (!l || typeof l !== 'object' || typeof l.id !== 'string' || typeof l.habitId !== 'string') {
+    return null;
+  }
+  return {
+    id: l.id,
+    habitId: l.habitId,
+    startedAt: typeof l.startedAt === 'string' ? l.startedAt : new Date().toISOString(),
+    resetAt: typeof l.resetAt === 'string' ? l.resetAt : new Date().toISOString(),
+    durationSeconds: Number(l.durationSeconds) || 0,
+    savedAmount: Number(l.savedAmount) || 0,
+    reasonNote: typeof l.reasonNote === 'string' ? l.reasonNote : '',
+    triggerTags: Array.isArray(l.triggerTags)
+      ? l.triggerTags.filter(/** @param {unknown} t */ (t) => typeof t === 'string')
+      : [],
   };
 }
 
@@ -85,8 +110,19 @@ export function migrate(raw) {
   }
 
   let data = raw;
-  // 将来のバージョンアップ時はここに追加する:
-  // if (data.version === 1) { data = { ...data, version: 2, /* 変換 */ }; }
+  // v1 -> v2 移行
+  if (data.version === 1) {
+    data = {
+      ...data,
+      version: 2,
+      habits: (Array.isArray(data.habits) ? data.habits : []).map(/** @param {any} h */ (h) =>
+        h && typeof h === 'object' ? { ...h, tags: Array.isArray(h.tags) ? h.tags : [] } : h,
+      ),
+      resetLogs: (Array.isArray(data.resetLogs) ? data.resetLogs : []).map(/** @param {any} l */ (l) =>
+        l && typeof l === 'object' ? { ...l, triggerTags: Array.isArray(l.triggerTags) ? l.triggerTags : [] } : l,
+      ),
+    };
+  }
 
   return {
     version: SCHEMA_VERSION,
@@ -96,7 +132,12 @@ export function migrate(raw) {
         /** @param {import('./model.js').Habit | null} h @returns {h is import('./model.js').Habit} */
         (h) => h !== null,
       ),
-    resetLogs: Array.isArray(data.resetLogs) ? data.resetLogs : [],
+    resetLogs: /** @type {any[]} */ (Array.isArray(data.resetLogs) ? data.resetLogs : [])
+      .map(normalizeResetLog)
+      .filter(
+        /** @param {import('./model.js').ResetLog | null} l @returns {l is import('./model.js').ResetLog} */
+        (l) => l !== null,
+      ),
     rewards: Array.isArray(data.rewards) ? data.rewards : [],
   };
 }

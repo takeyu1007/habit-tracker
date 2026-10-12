@@ -8,18 +8,42 @@ import { STORAGE_KEY } from './storage.js';
 import { createDashboard } from './ui/dashboard.js';
 import { createHabitForm } from './ui/habitForm.js';
 import { createResetModal } from './ui/resetModal.js';
+import { createCravingModal } from './ui/cravingModal.js';
+import { createHistoryView } from './ui/history.js';
+import { setupTabs, updateTabBadges } from './ui/tabs.js';
 import { setupInstallHint } from './ui/installHint.js';
 import { showToast } from './ui/toast.js';
 
 const store = createStore(localStorage);
 
+const cravingModal = createCravingModal();
+const historyView = createHistoryView();
+
 const habitForm = createHabitForm({
-  onSubmit({ id, title, icon, startedAt }) {
+  onSubmit({ id, title, icon, startedAt, costPerPeriod, costPeriodUnit, timeSpentMinutesPerDay, reasons, tags }) {
     if (id) {
-      store.updateHabit(id, { title, icon, startedAt });
+      store.updateHabit(id, {
+        title,
+        icon,
+        startedAt,
+        costPerPeriod,
+        costPeriodUnit,
+        timeSpentMinutesPerDay,
+        reasons,
+        tags,
+      });
       showToast('保存しました');
     } else {
-      store.addHabit({ title, icon, startedAt });
+      store.addHabit({
+        title,
+        icon,
+        startedAt,
+        costPerPeriod,
+        costPeriodUnit,
+        timeSpentMinutesPerDay,
+        reasons,
+        tags,
+      });
       showToast(`「${title}」の記録を始めました`);
     }
   },
@@ -31,8 +55,8 @@ const habitForm = createHabitForm({
 });
 
 const resetModal = createResetModal({
-  onConfirm(id, note) {
-    store.resetHabit(id, { note });
+  onConfirm(id, note, triggerTags) {
+    store.resetHabit(id, { note, triggerTags });
     showToast('記録を残しました。ここからまた始めましょう 💪');
   },
 });
@@ -45,17 +69,40 @@ const dashboard = createDashboard({
     const habit = store.getHabit(id);
     if (habit) resetModal.open(habit);
   },
+  onCraving(id) {
+    const habit = store.getHabit(id);
+    if (habit) cravingModal.open(habit);
+  },
 });
 
 const openAddForm = () => habitForm.open(undefined);
 document.getElementById('fab-add')?.addEventListener('click', openAddForm);
 document.getElementById('empty-add-button')?.addEventListener('click', openAddForm);
 
-store.subscribe((state) => dashboard.render(state.habits, Date.now()));
+setupTabs((tab) => {
+  if (tab === 'history') {
+    historyView.render();
+  }
+});
+
+function syncViews(state = store.getState()) {
+  dashboard.render(state.habits, Date.now());
+  historyView.update(state.resetLogs, state.habits);
+  updateTabBadges(state.habits.length, state.resetLogs.length);
+}
+
+store.subscribe((state) => syncViews(state));
 store.onSaveError(() =>
   showToast('保存に失敗しました。端末の空き容量を確認してください', { type: 'error', duration: 6000 }),
 );
-dashboard.render(store.getState().habits, Date.now());
+
+syncViews();
+
+// PWA App Shortcut (#add) から起動された場合は自動で追加モーダルを開く
+if (window.location.hash === '#add') {
+  openAddForm();
+  history.replaceState(null, '', window.location.pathname);
+}
 
 if (store.recoveredBackupKey) {
   showToast('保存データを読み込めなかったため、バックアップに退避して初期化しました', {

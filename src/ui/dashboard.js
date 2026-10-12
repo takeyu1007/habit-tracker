@@ -5,7 +5,7 @@
  * - tick():   毎秒、タイマーの数字テキストだけを書き換える（全体再描画しない）
  */
 
-import { elapsedSeconds, splitDuration } from '../calc.js';
+import { elapsedSeconds, splitDuration, savedMoney, savedMinutes, annualProjectedLoss, getMilestoneProgress } from '../calc.js';
 import { escapeHtml, formatDateTime, pad2 } from '../format.js';
 
 /** @typedef {import('../model.js').Habit} Habit */
@@ -22,6 +22,33 @@ const EDIT_ICON = `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="
  */
 function cardHtml(habit, index) {
   const title = escapeHtml(habit.title);
+  const tagsHtml = habit.tags && habit.tags.length > 0
+    ? `<div class="habit-card__tags">${habit.tags.map((t) => `<span class="tag-badge">#${escapeHtml(t)}</span>`).join('')}</div>`
+    : '';
+
+  const hasCost = habit.costPerPeriod > 0;
+  const hasTime = habit.timeSpentMinutesPerDay > 0;
+  const annualLoss = hasCost ? annualProjectedLoss(habit.costPerPeriod, habit.costPeriodUnit) : 0;
+
+  const metricsHtml = (hasCost || hasTime)
+    ? `<div class="habit-metrics">
+        ${hasCost ? `<div class="metric-pill"><span class="metric-pill__label">浮いたお金</span><span class="metric-pill__value" data-t="saved-money">¥0</span></div>` : ''}
+        ${hasTime ? `<div class="metric-pill"><span class="metric-pill__label">取り戻した時間</span><span class="metric-pill__value" data-t="saved-time">0h</span></div>` : ''}
+        ${hasCost ? `<div class="metric-pill"><span class="metric-pill__label">年間想定の損失</span><span class="metric-pill__value metric-pill__value--loss">¥${Math.round(annualLoss).toLocaleString()}/年</span></div>` : ''}
+      </div>`
+    : '';
+
+  const milestoneHtml = `
+    <div class="milestone-bar">
+      <div class="milestone-bar__header">
+        <span data-t="milestone-label">次の目標: 計算中...</span>
+        <span data-t="milestone-percent">0%</span>
+      </div>
+      <div class="milestone-bar__track">
+        <div class="milestone-bar__fill" data-t="milestone-fill" style="width: 0%;"></div>
+      </div>
+    </div>`;
+
   return `
   <article class="habit-card glass" data-id="${escapeHtml(habit.id)}" style="--i:${index}">
     <div class="habit-card__head">
@@ -29,9 +56,11 @@ function cardHtml(habit, index) {
       <div class="habit-card__meta">
         <h3 class="habit-card__title">${title}</h3>
         <p class="habit-card__since">${formatDateTime(habit.startedAt)} から</p>
+        ${tagsHtml}
       </div>
       <button type="button" class="icon-btn" data-action="edit" aria-label="「${title}」を編集">${EDIT_ICON}</button>
     </div>
+
     <div class="habit-card__timer" aria-label="経過時間">
       <div class="timer-days">
         <span class="timer-days__value" data-t="days">0</span><span class="timer-days__unit">日</span>
@@ -42,9 +71,16 @@ function cardHtml(habit, index) {
         <span class="timer-clock__seg"><span class="timer-clock__num" data-t="seconds">00</span><span class="timer-clock__unit">秒</span></span>
       </div>
     </div>
+
+    ${milestoneHtml}
+    ${metricsHtml}
+
     <div class="habit-card__foot">
       <span class="live-dot">記録中</span>
-      <button type="button" class="btn btn--reset" data-action="reset">リセット</button>
+      <div style="display: flex; gap: 8px;">
+        <button type="button" class="btn btn--sos" data-action="craving" title="衝動が来たときの対策">🚨 衝動SOS</button>
+        <button type="button" class="btn btn--reset" data-action="reset">リセット</button>
+      </div>
     </div>
   </article>`;
 }
@@ -53,13 +89,14 @@ function cardHtml(habit, index) {
  * @typedef {Object} DashboardHandlers
  * @property {(id: string) => void} onEdit
  * @property {(id: string) => void} onReset
+ * @property {(id: string) => void} onCraving
  */
 
 /**
  * @param {DashboardHandlers} handlers
  */
 export function createDashboard(handlers) {
-  /** @type {Map<HTMLElement, string>} カード要素 → startedAt */
+  /** @type {Map<HTMLElement, Habit>} カード要素 → Habit */
   let cards = new Map();
 
   grid.addEventListener('click', (e) => {
@@ -70,16 +107,41 @@ export function createDashboard(handlers) {
     const action = /** @type {HTMLElement} */ (button).dataset.action;
     if (action === 'edit') handlers.onEdit(card.dataset.id);
     if (action === 'reset') handlers.onReset(card.dataset.id);
+    if (action === 'craving') handlers.onCraving(card.dataset.id);
   });
 
   /** @param {number} nowMs */
   function tick(nowMs) {
-    cards.forEach((startedAt, card) => {
-      const { days, hours, minutes, seconds } = splitDuration(elapsedSeconds(startedAt, nowMs));
+    cards.forEach((habit, card) => {
+      const elapsed = elapsedSeconds(habit.startedAt, nowMs);
+      const { days, hours, minutes, seconds } = splitDuration(elapsed);
       setText(card, 'days', String(days));
       setText(card, 'hours', pad2(hours));
       setText(card, 'minutes', pad2(minutes));
       setText(card, 'seconds', pad2(seconds));
+
+      // 節約メトリクス
+      if (habit.costPerPeriod > 0) {
+        const money = Math.round(savedMoney(elapsed, habit.costPerPeriod, habit.costPeriodUnit));
+        setText(card, 'saved-money', `¥${money.toLocaleString()}`);
+      }
+      if (habit.timeSpentMinutesPerDay > 0) {
+        const mins = savedMinutes(elapsed, habit.timeSpentMinutesPerDay);
+        const hrs = (mins / 60).toFixed(1);
+        setText(card, 'saved-time', `${hrs}時間`);
+      }
+
+      // マイルストーン進捗
+      const p = getMilestoneProgress(elapsed, habit.milestones);
+      if (p.isMax) {
+        setText(card, 'milestone-label', `🏆 全目標達成 (${p.prevGoal}日突破)`);
+        setText(card, 'milestone-percent', '100%');
+      } else {
+        setText(card, 'milestone-label', `目標: ${p.nextGoal}日 (${p.prevGoal}日〜)`);
+        setText(card, 'milestone-percent', `${p.percent}%`);
+      }
+      const fillEl = card.querySelector('[data-t="milestone-fill"]');
+      if (fillEl instanceof HTMLElement) fillEl.style.width = `${p.percent}%`;
     });
   }
 
@@ -95,7 +157,7 @@ export function createDashboard(handlers) {
 
     cards = new Map();
     grid.querySelectorAll('.habit-card').forEach((el, i) => {
-      cards.set(/** @type {HTMLElement} */ (el), habits[i].startedAt);
+      cards.set(/** @type {HTMLElement} */ (el), habits[i]);
     });
     tick(nowMs);
   }

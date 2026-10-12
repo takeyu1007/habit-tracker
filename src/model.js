@@ -17,6 +17,7 @@
  * @property {CostPeriodUnit} costPeriodUnit   費用周期
  * @property {number} timeSpentMinutesPerDay   1日あたり消費していた時間（分）
  * @property {string[]} reasons                やめたい理由リスト
+ * @property {string[]} tags                   分類カテゴリ・タグ（例: "健康", "節約"）
  * @property {number[]} milestones             目標日数リスト（昇順）
  * @property {string} createdAt
  */
@@ -31,6 +32,7 @@
  * @property {number} durationSeconds   その回で継続できた秒数
  * @property {number} savedAmount       その回で浮いた金額（円）
  * @property {string} reasonNote        引き金・反省メモ
+ * @property {string[]} triggerTags     再発トリガー要因（例: "ストレス", "疲労"）
  */
 
 /**
@@ -80,6 +82,7 @@ export function createHabit(input, now = new Date()) {
     costPeriodUnit: input.costPeriodUnit ?? 'day',
     timeSpentMinutesPerDay: input.timeSpentMinutesPerDay ?? 0,
     reasons: input.reasons ? [...input.reasons] : [],
+    tags: input.tags ? [...input.tags] : [],
     milestones: input.milestones ? [...input.milestones] : [...DEFAULT_MILESTONES],
     createdAt: nowIso,
   };

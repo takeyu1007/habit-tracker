@@ -5,7 +5,7 @@
  * ルール: ファイルを追加・改名したら APP_SHELL を更新し、CACHE_VERSION を上げること。
  */
 
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = `habit-tracker-${CACHE_VERSION}`;
 
 const APP_SHELL = [
@@ -24,6 +24,9 @@ const APP_SHELL = [
   './src/ui/dashboard.js',
   './src/ui/habitForm.js',
   './src/ui/resetModal.js',
+  './src/ui/cravingModal.js',
+  './src/ui/history.js',
+  './src/ui/tabs.js',
   './src/ui/installHint.js',
   './src/ui/toast.js',
   './icons/icon-192.png',

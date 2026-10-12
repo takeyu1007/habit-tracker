@@ -36,6 +36,15 @@
         <p class="app-header__subtitle" id="header-summary">やめたい習慣を、記録で断ち切る</p>
       </div>
     </div>
+    <!-- タブ切り替え -->
+    <nav class="tab-nav" aria-label="表示切り替え">
+      <button type="button" class="tab-btn is-active" id="tab-progress" data-tab="progress" aria-selected="true" role="tab">
+        進行中 <span class="tab-badge" id="tab-badge-progress">0</span>
+      </button>
+      <button type="button" class="tab-btn" id="tab-history" data-tab="history" aria-selected="false" role="tab">
+        履歴 <span class="tab-badge" id="tab-badge-history">0</span>
+      </button>
+    </nav>
   </header>
 
   <div class="install-hint" id="install-hint" hidden>
@@ -47,14 +56,54 @@
   </div>
 
   <main class="app-main">
-    <section class="habit-grid" id="habit-grid" aria-label="習慣一覧"></section>
+    <!-- 進行中タブ -->
+    <div id="view-progress" role="tabpanel" aria-labelledby="tab-progress">
+      <section class="habit-grid" id="habit-grid" aria-label="習慣一覧"></section>
 
-    <section class="empty-state glass" id="empty-state" hidden>
-      <img class="empty-state__icon" src="./icons/icon-192.png" alt="" width="96" height="96">
-      <h2 class="empty-state__title">最初の習慣を追加しましょう</h2>
-      <p class="empty-state__text">やめたい習慣を登録すると、断ってからの時間が<br>リアルタイムで積み上がっていきます。</p>
-      <button type="button" class="btn btn--primary" id="empty-add-button">＋ 習慣を追加</button>
-    </section>
+      <section class="empty-state glass" id="empty-state" hidden>
+        <img class="empty-state__icon" src="./icons/icon-192.png" alt="" width="96" height="96">
+        <h2 class="empty-state__title">最初の習慣を追加しましょう</h2>
+        <p class="empty-state__text">やめたい習慣を登録すると、断ってからの時間が<br>リアルタイムで積み上がっていきます。</p>
+        <button type="button" class="btn btn--primary" id="empty-add-button">＋ 習慣を追加</button>
+      </section>
+    </div>
+
+    <!-- 履歴タブ -->
+    <div id="view-history" role="tabpanel" aria-labelledby="tab-history" hidden>
+      <!-- フィルタ・ソートバー -->
+      <section class="history-controls glass" id="history-controls">
+        <div class="history-controls__row">
+          <label class="history-controls__field">
+            <span class="history-controls__label">習慣</span>
+            <select class="input input--select" id="history-filter-habit">
+              <option value="all">すべての習慣</option>
+            </select>
+          </label>
+          <label class="history-controls__field">
+            <span class="history-controls__label">タグ</span>
+            <select class="input input--select" id="history-filter-tag">
+              <option value="all">すべてのタグ</option>
+            </select>
+          </label>
+          <label class="history-controls__field">
+            <span class="history-controls__label">並び順</span>
+            <select class="input input--select" id="history-sort">
+              <option value="newest">新しい順</option>
+              <option value="oldest">古い順</option>
+              <option value="longest">継続が長い順</option>
+              <option value="saved">浮いた金額順</option>
+            </select>
+          </label>
+        </div>
+      </section>
+
+      <section class="history-timeline" id="history-timeline" aria-label="リセット履歴一覧"></section>
+
+      <section class="empty-state glass" id="history-empty-state" hidden>
+        <h2 class="empty-state__title">リセット履歴はありません</h2>
+        <p class="empty-state__text">習慣をリセット（再発）した際に、<br>継続できた時間や反省メモがここに記録されます。</p>
+      </section>
+    </div>
   </main>
 
   <button type="button" class="fab" id="fab-add" aria-label="習慣を追加">
@@ -90,6 +139,46 @@
         <span class="field__error" id="habit-started-at-error" hidden>未来の日時は指定できません</span>
       </label>
 
+      <!-- タグ設定 -->
+      <div class="field">
+        <span class="field__label">タグ・カテゴリ（任意）</span>
+        <input class="input" type="text" id="habit-tags-input" placeholder="例: 健康, 節約, メンタル (カンマ区切り)" autocomplete="off">
+        <div class="chip-row" id="preset-tags-list" style="margin-top: 6px;"></div>
+      </div>
+
+      <!-- コスト・時間・やめる理由（アコーディオン） -->
+      <details class="accordion glass">
+        <summary class="accordion__summary">
+          <span>💰 節約・時間・やめる理由の設定（任意）</span>
+          <span class="accordion__arrow" aria-hidden="true">▼</span>
+        </summary>
+        <div class="accordion__content">
+          <div class="field-grid">
+            <label class="field">
+              <span class="field__label">使っていた金額（円）</span>
+              <input class="input" type="number" id="habit-cost" min="0" step="10" placeholder="例: 600">
+            </label>
+            <label class="field">
+              <span class="field__label">周期</span>
+              <select class="input input--select" id="habit-cost-unit">
+                <option value="day">1日あたり</option>
+                <option value="week">1週間あたり</option>
+                <option value="month">1ヶ月あたり</option>
+              </select>
+            </label>
+          </div>
+          <label class="field">
+            <span class="field__label">1日あたり使っていた時間（分）</span>
+            <input class="input" type="number" id="habit-time-spent" min="0" step="5" placeholder="例: 120">
+          </label>
+          <label class="field">
+            <span class="field__label">やめたい理由（箇条書き・改行区切り）</span>
+            <textarea class="input input--textarea" id="habit-reasons" rows="3" placeholder="例: 体重を減らして健康診断をクリアする&#10;無駄な出費を減らして旅行に行く"></textarea>
+            <span class="field__hint">衝動が襲ってきた時にすぐ確認できます</span>
+          </label>
+        </div>
+      </details>
+
       <div class="sheet__actions">
         <button type="button" class="btn btn--danger-ghost" id="habit-delete" hidden>削除</button>
         <span class="sheet__spacer"></span>
@@ -113,12 +202,18 @@
         </div>
       </div>
 
+      <!-- 要因タグ -->
+      <fieldset class="field">
+        <legend class="field__label">再発のきっかけ・要因（タップで選択）</legend>
+        <div class="chip-row chip-row--wrap" id="reset-triggers-list"></div>
+      </fieldset>
+
       <label class="field">
         <span class="field__label">振り返りメモ（任意）</span>
-        <textarea class="input input--textarea" id="reset-note" rows="3" maxlength="500" placeholder="何がきっかけでしたか？ そのときの気持ちは？"></textarea>
+        <textarea class="input input--textarea" id="reset-note" rows="3" maxlength="500" placeholder="何が引き金でしたか？ そのときの感情や反省点"></textarea>
       </label>
 
-      <p class="sheet__note">これまでの記録は履歴として残ります。ここからまた始めましょう。</p>
+      <p class="sheet__note">これまでの記録は履歴として残ります。失敗ではなく経験として次に活かしましょう！</p>
 
       <div class="sheet__actions">
         <span class="sheet__spacer"></span>
@@ -126,6 +221,37 @@
         <button type="submit" class="btn btn--danger" id="reset-confirm">リセットする</button>
       </div>
     </form>
+  </dialog>
+
+  <!-- 衝動 SOS モーダル -->
+  <dialog class="sheet" id="craving-dialog" aria-labelledby="craving-dialog-title">
+    <div class="sheet__body">
+      <div class="sheet__handle" aria-hidden="true"></div>
+      <div class="craving-header">
+        <span class="craving-badge">🚨 衝動緊急対策</span>
+        <h2 class="sheet__title" id="craving-dialog-title">衝動の波をやり過ごす</h2>
+        <p class="sheet__note">衝動のピークは約15分で通り過ぎます。まずは深呼吸して心を落ち着けましょう。</p>
+      </div>
+
+      <!-- 60秒深呼吸サークル -->
+      <div class="breathing-widget glass">
+        <div class="breathing-circle" id="breathing-circle">
+          <span class="breathing-text" id="breathing-text">吸って</span>
+          <span class="breathing-sec" id="breathing-sec">4s</span>
+        </div>
+        <p class="breathing-hint">4秒吸う → 7秒止める → 8秒吐く（4-7-8呼吸法）</p>
+      </div>
+
+      <!-- やめる理由カード -->
+      <div class="craving-reasons glass" id="craving-reasons-card">
+        <h3 class="craving-reasons__title">🎯 あなたがやめる理由</h3>
+        <ul class="craving-reasons__list" id="craving-reasons-list"></ul>
+      </div>
+
+      <div class="sheet__actions">
+        <button type="button" class="btn btn--primary" id="craving-close" style="width: 100%;">落ち着いた・戻る</button>
+      </div>
+    </div>
   </dialog>
 
   <div class="toast-region" id="toast-region" role="status" aria-live="polite"></div>

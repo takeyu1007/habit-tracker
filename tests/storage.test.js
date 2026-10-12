@@ -50,14 +50,28 @@ test('migrate: 欠損フィールドを既定値で補完し、不正な習慣�
   assert.equal(h.costPerPeriod, 0);
   assert.equal(h.costPeriodUnit, 'day');
   assert.deepEqual(h.reasons, []);
+  assert.deepEqual(h.tags, []);
   assert.deepEqual(h.milestones, [1, 3, 7, 14, 30, 90, 180, 365]);
   assert.deepEqual(data.resetLogs, []);
+});
+
+test('migrate: v1 から v2 へのマイグレーション', () => {
+  const v1Data = {
+    version: 1,
+    habits: [{ id: 'h1', title: 'タバコ', icon: '🚬', startedAt: '2026-10-01T00:00:00.000Z' }],
+    resetLogs: [{ id: 'r1', habitId: 'h1', startedAt: '2026-10-01T00:00:00.000Z', resetAt: '2026-10-02T00:00:00.000Z' }],
+    rewards: [],
+  };
+  const migrated = migrate(v1Data);
+  assert.equal(migrated.version, 2);
+  assert.deepEqual(migrated.habits[0].tags, []);
+  assert.deepEqual(migrated.resetLogs[0].triggerTags, []);
 });
 
 test('save: 書き込み失敗時は false', () => {
   const storage = new MemoryStorage();
   storage.failWrites = true;
-  assert.equal(save(storage, migrate({ version: 1 })), false);
+  assert.equal(save(storage, migrate({ version: 2 })), false);
 });
 
 // ---- store ----
@@ -72,7 +86,7 @@ test('addHabit: SPEC の全フィールドを既定値付きで保存', () => {
   assert.equal(h.createdAt, T0.toISOString());
   assert.deepEqual(Object.keys(h).sort(), [
     'costPerPeriod', 'costPeriodUnit', 'createdAt', 'icon', 'id', 'milestones',
-    'reasons', 'startedAt', 'timeSpentMinutesPerDay', 'title',
+    'reasons', 'startedAt', 'tags', 'timeSpentMinutesPerDay', 'title',
   ]);
 });
 
